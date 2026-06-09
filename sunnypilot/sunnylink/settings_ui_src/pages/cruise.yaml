@@ -43,19 +43,31 @@ sections:
       label: Relaxed
     enablement:
     - $ref: '#/macros/longitudinal'
+  - key: AccelPersonalityEnabled
+    widget: toggle
+    title: Enable Acceleration Profiles
+    description: Enables Eco/Normal/Sport acceleration profiles for longitudinal control, including early soft braking.
+    visibility:
+    - $ref: '#/macros/longitudinal'
+    enablement:
+    - $ref: '#/macros/longitudinal'
   - key: AccelPersonality
     widget: multiple_button
     title: Acceleration Profile
-    description: Controls how quickly sunnypilot accelerates while preserving braking and stop behavior.
+    description: Eco accelerates gently and brakes early and soft; Sport accelerates briskly. Hard-braking
+      authority is always preserved.
     options:
-    - value: 2
+    - value: 0
       label: Eco
     - value: 1
       label: Normal
-    - value: 0
+    - value: 2
       label: Sport
     enablement:
     - $ref: '#/macros/longitudinal'
+    - type: param
+      key: AccelPersonalityEnabled
+      equals: true
   - key: IntelligentCruiseButtonManagement
     widget: toggle
     title: Intelligent Cruise Button Management (ICBM) (Alpha)

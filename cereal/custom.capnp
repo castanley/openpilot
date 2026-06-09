@@ -194,6 +194,7 @@ struct LongitudinalPlanSP @0xf35cc4560bbf6ec2 {
   aTarget @5 :Float32;
   events @6 :List(OnroadEventSP.Event);
   e2eAlerts @7 :E2eAlerts;
+  acceleration @8 :Acceleration;
 
   struct DynamicExperimentalControl {
     state @0 :DynamicExperimentalControlState;
@@ -295,6 +296,23 @@ struct LongitudinalPlanSP @0xf35cc4560bbf6ec2 {
   struct E2eAlerts {
     greenLightAlert @0 :Bool;
     leadDepartAlert @1 :Bool;
+  }
+
+  # Acceleration Personality (Eco / Normal / Sport)
+  struct Acceleration {
+    personality @0 :AccelerationPersonality;
+    enabled @1 :Bool;
+    maxAccel @2 :Float32;     # current speed-indexed accel ceiling
+    brakeNeed @3 :Float32;    # predicted decel demand from the lookahead (m/s^2, positive)
+    decelTarget @4 :Float32;  # early-soft comfort decel target (m/s^2, negative)
+    smoothActive @5 :Bool;    # early-soft braking currently shaping the target
+    bypassed @6 :Bool;        # passthrough to stock plan (hard brake / FCW / should_stop / closing lead / e2e)
+  }
+
+  enum AccelerationPersonality {
+    eco @0;
+    normal @1;
+    sport @2;
   }
 }
 

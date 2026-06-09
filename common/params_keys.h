@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "cereal/gen/cpp/log.capnp.h"
+#include "cereal/gen/cpp/custom.capnp.h"
 
 inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"AccessToken", {CLEAR_ON_MANAGER_START | DONT_LOG, STRING}},
@@ -234,6 +235,10 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
 
     {"DynamicExperimentalControl", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"BlindSpot", {PERSISTENT | BACKUP, BOOL, "0"}},
+
+    // Acceleration Personality (Eco / Normal / Sport)
+    {"AccelPersonalityEnabled", {PERSISTENT | BACKUP, BOOL, "0"}},
+    {"AccelPersonality", {PERSISTENT | BACKUP, INT, std::to_string(static_cast<int>(cereal::LongitudinalPlanSP::AccelerationPersonality::NORMAL))}},
 
     // sunnypilot model params
     {"CameraOffset", {PERSISTENT | BACKUP, FLOAT, "0.0"}},

@@ -31,6 +31,11 @@ DESCRIPTIONS = {
     "Receive alerts to steer back into the lane when your vehicle drifts over a detected lane line " +
     "without a turn signal activated while driving over 31 mph (50 km/h)."
   ),
+  "AccelPersonalityEnabled": tr_noop("Enable Eco/Normal/Sport acceleration profiles, including early soft braking."),
+  "AccelPersonality": tr_noop(
+    "Eco accelerates gently and brakes early and soft; Sport accelerates briskly. " +
+    "Hard-braking authority is always preserved."
+  ),
   "AlwaysOnDM": tr_noop("Enable driver monitoring even when sunnypilot is not engaged."),
   'RecordFront': tr_noop("Upload data from the driver facing camera and help improve the driver monitoring algorithm."),
   "IsMetric": tr_noop("Display speed in km/h instead of mph."),
@@ -106,6 +111,24 @@ class TogglesLayout(Widget):
       icon="speed_limit.png"
     )
 
+    self._accel_personality_enabled = toggle_item(
+      lambda: tr("Enable Acceleration Profiles"),
+      lambda: tr(DESCRIPTIONS["AccelPersonalityEnabled"]),
+      self._params.get_bool("AccelPersonalityEnabled"),
+      callback=self._set_accel_personality_enabled,
+      icon="speed_limit.png",
+    )
+
+    self._accel_personality_setting = multiple_button_item(
+      lambda: tr("Acceleration Profile"),
+      lambda: tr(DESCRIPTIONS["AccelPersonality"]),
+      buttons=[lambda: tr("Eco"), lambda: tr("Normal"), lambda: tr("Sport")],
+      button_width=300,
+      callback=self._set_accel_personality,
+      selected_index=self._params.get("AccelPersonality", return_default=True),
+      icon="speed_limit.png"
+    )
+
     self._toggles = {}
     self._locked_toggles = set()
     for param, (title, desc, icon, needs_restart) in self._toggle_defs.items():
@@ -135,9 +158,11 @@ class TogglesLayout(Widget):
 
       self._toggles[param] = toggle
 
-      # insert longitudinal personality after NDOG toggle
+      # insert longitudinal + acceleration personality after NDOG toggle
       if param == "DisengageOnAccelerator":
         self._toggles["LongitudinalPersonality"] = self._long_personality_setting
+        self._toggles["AccelPersonalityEnabled"] = self._accel_personality_enabled
+        self._toggles["AccelPersonality"] = self._accel_personality_setting
 
     self._update_experimental_mode_icon()
     self._scroller = Scroller(list(self._toggles.values()), line_separator=True, spacing=0)
@@ -176,11 +201,15 @@ class TogglesLayout(Widget):
         self._toggles["ExperimentalMode"].action_item.set_enabled(True)
         self._toggles["ExperimentalMode"].set_description(e2e_description)
         self._long_personality_setting.action_item.set_enabled(True)
+        self._accel_personality_enabled.action_item.set_enabled(True)
+        self._accel_personality_setting.action_item.set_enabled(True)
       else:
         # no long for now
         self._toggles["ExperimentalMode"].action_item.set_enabled(False)
         self._toggles["ExperimentalMode"].action_item.set_state(False)
         self._long_personality_setting.action_item.set_enabled(False)
+        self._accel_personality_enabled.action_item.set_enabled(False)
+        self._accel_personality_setting.action_item.set_enabled(False)
         self._params.remove("ExperimentalMode")
 
         unavailable = tr("Experimental mode is currently unavailable on this car since the car's stock ACC is used for longitudinal control.")
@@ -247,3 +276,9 @@ class TogglesLayout(Widget):
 
   def _set_longitudinal_personality(self, button_index: int):
     self._params.put("LongitudinalPersonality", button_index, block=True)
+
+  def _set_accel_personality(self, button_index: int):
+    self._params.put("AccelPersonality", button_index, block=True)
+
+  def _set_accel_personality_enabled(self, state: bool):
+    self._params.put_bool("AccelPersonalityEnabled", state, block=True)
