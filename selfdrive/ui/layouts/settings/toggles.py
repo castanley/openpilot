@@ -36,6 +36,10 @@ DESCRIPTIONS = {
     "Eco accelerates gently and brakes early and soft; Sport accelerates briskly. " +
     "Hard-braking authority is always preserved."
   ),
+  "RadarDistance": tr_noop(
+    "Hold a lead through brief radar flicker/dropout so sunnypilot does not lose and re-grab it, " +
+    "smoothing the hard/late brakes that radar drop-outs cause. Braking is never reduced below stock."
+  ),
   "AlwaysOnDM": tr_noop("Enable driver monitoring even when sunnypilot is not engaged."),
   'RecordFront': tr_noop("Upload data from the driver facing camera and help improve the driver monitoring algorithm."),
   "IsMetric": tr_noop("Display speed in km/h instead of mph."),
@@ -67,6 +71,12 @@ class TogglesLayout(Widget):
         lambda: tr("Disengage on Accelerator Pedal"),
         DESCRIPTIONS["DisengageOnAccelerator"],
         "disengage_on_accelerator.png",
+        False,
+      ),
+      "RadarDistance": (
+        lambda: tr("Radar Distance"),
+        DESCRIPTIONS["RadarDistance"],
+        "speed_limit.png",
         False,
       ),
       "IsLdwEnabled": (

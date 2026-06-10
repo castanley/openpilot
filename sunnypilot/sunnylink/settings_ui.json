@@ -588,6 +588,26 @@
               ]
             },
             {
+              "key": "RadarDistance",
+              "widget": "toggle",
+              "title": "Radar Distance",
+              "description": "Holds a lead through brief radar flicker/dropout so sunnypilot does not lose and re-grab it, smoothing the hard/late brakes that radar drop-outs cause. Braking is never reduced below stock.",
+              "visibility": [
+                {
+                  "type": "capability",
+                  "field": "has_longitudinal_control",
+                  "equals": true
+                }
+              ],
+              "enablement": [
+                {
+                  "type": "capability",
+                  "field": "has_longitudinal_control",
+                  "equals": true
+                }
+              ]
+            },
+            {
               "key": "DisengageOnAccelerator",
               "widget": "toggle",
               "title": "Disengage Cruise on Accelerator Pedal",
