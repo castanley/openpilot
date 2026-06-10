@@ -149,6 +149,7 @@ class LongitudinalPlannerSP:
     acceleration.brakeNeed = float(self.accel.brake_need())
     acceleration.decelTarget = float(self.accel.decel_target())
     acceleration.smoothActive = self.accel.smooth_active()
-    acceleration.bypassed = self.accel.bypassed()
+    acceleration.bypassed = bool(self.accel.bypassed())
+
 
     pm.send('longitudinalPlanSP', plan_sp_send)
