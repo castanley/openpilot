@@ -185,6 +185,80 @@ def test_e2e_brake_passthrough():
   assert not ctrl.smooth_active()
 
 
+# --- rubber-band fixes: pull-away suppression + hysteresis ---
+
+def test_lead_pullaway_suppresses_early_brake():
+  # lead pulling away (vRel>0.5) -> model-predicted decel is spurious -> no anticipatory brake
+  ctrl = make_controller(personality=ECO)
+  ctrl.update(make_sm(v_ego=10.0, lead_status=True, v_rel=1.5, d_rel=20.0))
+  out = ctrl.smooth_target_accel(0.0, flat_traj(-1.5), T_IDXS, should_stop=False)
+  assert not ctrl.smooth_active()
+  assert out >= -_EPS
+
+
+def test_low_speed_tapers_anticipatory_brake():
+  # at low speed the anticipatory brake is tapered out (rubber-band zone); plan brake still passes
+  ctrl = make_controller(personality=ECO)
+  ctrl.update(make_sm(v_ego=3.0))   # < 6 m/s -> gain 0
+  out = ctrl.smooth_target_accel(0.0, flat_traj(-1.5), T_IDXS, should_stop=False)
+  assert not ctrl.smooth_active()
+  assert out >= -_EPS
+  # same predicted decel at speed engages
+  ctrl.update(make_sm(v_ego=15.0))
+  out = ctrl.smooth_target_accel(0.0, flat_traj(-1.5), T_IDXS, should_stop=False)
+  assert ctrl.smooth_active()
+
+
+def test_smooth_hysteresis_no_toggle():
+  ctrl = make_controller(personality=NORMAL)
+  ctrl.update(make_sm(v_ego=20.0))
+  # brake_need 0.25 (between EXIT 0.15 and ENTER 0.40): does NOT engage from idle
+  ctrl.smooth_target_accel(0.0, flat_traj(-0.25), T_IDXS, should_stop=False)
+  assert not ctrl.smooth_active()
+  # clear decel engages
+  ctrl.smooth_target_accel(0.0, flat_traj(-0.6), T_IDXS, should_stop=False)
+  assert ctrl.smooth_active()
+  # drops to 0.25 (still > EXIT): stays engaged (hysteresis, no toggle)
+  ctrl.smooth_target_accel(0.0, flat_traj(-0.25), T_IDXS, should_stop=False)
+  assert ctrl.smooth_active()
+
+
+# --- stop-hold / anti-creep (double-stop fix) ---
+
+def test_stop_hold_prevents_creep():
+  ctrl = make_controller(personality=ECO)
+  ctrl.update(make_sm(v_ego=0.0, lead_status=True, v_rel=0.0, d_rel=5.0))  # stopped behind stopped lead
+  assert ctrl.stop_held()
+  out = ctrl.smooth_target_accel(0.3, flat_traj(0.3), T_IDXS, should_stop=False)  # plan wants to creep
+  assert out <= 0.0  # creep suppressed
+
+
+def test_stop_hold_ignores_lead_twitch():
+  ctrl = make_controller(personality=ECO)
+  ctrl.update(make_sm(v_ego=0.0, lead_status=True, v_rel=0.0, d_rel=5.0))
+  assert ctrl.stop_held()
+  ctrl.update(make_sm(v_ego=0.0, lead_status=True, v_rel=1.0, d_rel=5.8))  # twitch: vLead 1.0<1.5, dRel +0.8<2.0
+  assert ctrl.stop_held()
+
+
+def test_stop_hold_releases_on_real_departure():
+  ctrl = make_controller(personality=ECO)
+  ctrl.update(make_sm(v_ego=0.0, lead_status=True, v_rel=0.0, d_rel=5.0))
+  assert ctrl.stop_held()
+  ctrl.update(make_sm(v_ego=0.0, lead_status=True, v_rel=2.0, d_rel=7.5))  # lead clearly departing (vLead 2.0)
+  assert not ctrl.stop_held()
+  out = ctrl.smooth_target_accel(0.5, flat_traj(0.5), T_IDXS, should_stop=False)
+  assert out > 0.0  # launch allowed
+
+
+def test_stop_hold_disabled_is_stock():
+  ctrl = make_controller(enabled=False)
+  ctrl.update(make_sm(v_ego=0.0, lead_status=True, v_rel=0.0, d_rel=5.0))
+  assert not ctrl.stop_held()  # never latches when disabled (off == stock)
+  out = ctrl.smooth_target_accel(0.3, flat_traj(0.3), T_IDXS, should_stop=False)
+  assert out == pytest.approx(0.3, abs=_EPS)
+
+
 # --- param sanitation ---
 
 def test_out_of_range_personality_clamps():

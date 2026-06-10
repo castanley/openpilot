@@ -44,7 +44,7 @@ RISE_RATE = {
 # Gentle, human-like progression: lead the brake early and softly rather than late and hard.
 SMOOTH_DECEL_BP = [0.0, 0.4, 0.8, 1.2, 1.6, 2.0, 2.4]
 SMOOTH_DECEL_V = {
-  ECO:    [0.00, -0.10, -0.24, -0.44, -0.68, -0.92, -1.15],
+  ECO:    [0.00, -0.08, -0.20, -0.38, -0.60, -0.82, -1.05],
   NORMAL: [0.00, -0.13, -0.30, -0.55, -0.84, -1.12, -1.40],
   SPORT:  [0.00, -0.17, -0.40, -0.72, -1.05, -1.35, -1.65],
 }
@@ -53,7 +53,7 @@ SMOOTH_DECEL_V = {
 # Deepening only shapes the EARLY front-loaded brake; the never-weaken clamp lets a real plan brake
 # through immediately, so a soft deepening rate never delays genuine braking.
 BRAKE_DEEPENING_JERK = {
-  ECO:    0.6,
+  ECO:    0.5,
   NORMAL: 0.8,
   SPORT:  1.0,
 }
@@ -80,3 +80,23 @@ HARD_BRAKE_NEED = 2.6
 # accel thresholds above (mirrors the route 000003da lesson - shaping must yield to closing dynamics).
 CLOSING_LEAD_VREL = -8.0   # m/s, lead approaching faster than this
 CLOSING_LEAD_TTC = 4.0     # s, time-to-collision below this
+
+# --- early-soft-braking consistency (anti rubber-band, route 00000423 finding) ---
+# Hysteresis on engagement so the anticipatory brake doesn't toggle on transient predicted-decel dips.
+SMOOTH_ENTER = 0.40   # brake_need to ENGAGE early-soft braking
+SMOOTH_EXIT = 0.15    # brake_need to DISENGAGE once engaged
+# A present lead pulling away makes the model's predicted decel spurious in a following context;
+# suppress the anticipatory brake then (the plan's real brake still passes via never-weaken).
+EARLY_BRAKE_PULLAWAY_VREL = 0.5   # m/s, lead opening faster than this -> no anticipatory brake
+# Taper the anticipatory brake out at low speed: in stop-and-go it only adds rubber-band and the stops
+# are owned by stop-hold / should_stop anyway (route 00000423: the flips lived < 7 m/s). The plan's real
+# brake still passes via never-weaken, so no braking is lost - only the spurious early shaping.
+EARLY_BRAKE_SPEED_BP = [6.0, 9.0]   # m/s
+EARLY_BRAKE_SPEED_V = [0.0, 1.0]    # anticipatory-brake gain
+
+# --- stop-hold / anti-creep (no double-stop / roll, route 00000423 finding) ---
+STOP_HOLD_EGO_V = 0.5             # ego considered stopped below this (m/s)
+STOP_HOLD_LEAD_V = 1.0            # lead considered stopped below this (m/s)
+STOP_HOLD_RELEASE_LEAD_V = 1.5    # lead clearly departing -> release latch (m/s); above a 1m twitch
+STOP_HOLD_RELEASE_DREL = 2.0      # ... or the gap opened this much from the stop (m)
+STOP_HOLD_ACCEL = -0.3            # gentle hold while latched (no creep); never weakens a deeper plan brake
