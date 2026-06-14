@@ -341,17 +341,21 @@ class DriverMonitoring:
     # When "Disable Driver Monitoring Nudges" is enabled in settings, suppress all
     # awareness decay, distraction events, terminal lockouts, and the resulting
     # alerts + forceDecel. This implements the "remove safety nudging" behavior
-    # behind the boolean (see DM_NUDGE_REMOVAL_PLAN.md). Face/pose detection in
-    # _update_states still runs so driverMonitoringState.faceDetected etc. remain
-    # available for UI/debug if desired.
+    # behind the boolean. Face/pose detection in _update_states still runs so
+    # driverMonitoringState.faceDetected etc. remain available for UI/debug if desired.
     if self.disable_dm_nudges:
       self.awareness = 1.
       self.awareness_active = 1.
       self.awareness_passive = 1.
-      self.too_distracted = False
       self.terminal_alert_cnt = 0
       self.terminal_time = 0
-      self.params.put_bool_nonblocking("DriverTooDistracted", False)
+      # keep the camera-uncertainty counter from accruing while suppressed, so
+      # turning the toggle off later doesn't immediately fire the one-time
+      # Offroad_DriverMonitoringUncertain alert
+      self.dcam_uncertain_cnt = 0
+      if self.too_distracted:
+        self.too_distracted = False
+        self.params.put_bool_nonblocking("DriverTooDistracted", False)
       return
 
     # Block engaging until ignition cycle after max number or time of distractions
