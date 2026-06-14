@@ -33,9 +33,10 @@ def dmonitoringd_thread():
     dat = DM.get_state_packet(valid=valid)
     pm.send('driverMonitoringState', dat)
 
-    # load live always-on toggle
+    # load live always-on toggle and DM nudge disable toggle
     if sm['driverStateV2'].frameId % 40 == 1:
       DM.always_on = params.get_bool("AlwaysOnDM")
+      DM.disable_dm_nudges = params.get_bool("DisableDMNudges")
       demo_mode = params.get_bool("IsDriverViewEnabled")
 
     # save rhd virtual toggle every 5 mins

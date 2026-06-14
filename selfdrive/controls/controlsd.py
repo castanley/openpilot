@@ -212,7 +212,8 @@ class Controls(ControlsExt):
     cs.upAccelCmd = float(self.LoC.pid.p)
     cs.uiAccelCmd = float(self.LoC.pid.i)
     cs.ufAccelCmd = float(self.LoC.pid.f)
-    cs.forceDecel = bool((self.sm['driverMonitoringState'].awarenessStatus < 0.) or
+    disable_dm_nudges = self.params.get_bool("DisableDMNudges")
+    cs.forceDecel = bool(((self.sm['driverMonitoringState'].awarenessStatus < 0.) and not disable_dm_nudges) or
                          (self.sm['selfdriveState'].state == State.softDisabling))
 
     lat_tuning = self.CP.lateralTuning.which()

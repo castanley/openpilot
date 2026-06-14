@@ -154,6 +154,7 @@ class DriverMonitoring:
     self.phone_prob = 0.
 
     self.always_on = always_on
+    self.disable_dm_nudges = False
     self.distracted_types = []
     self.driver_distracted = False
     self.driver_distraction_filter = FirstOrderFilter(0., self.settings._DISTRACTED_FILTER_TS, self.settings._DT_DMON)
@@ -175,6 +176,7 @@ class DriverMonitoring:
 
     self.params = Params()
     self.too_distracted = self.params.get_bool("DriverTooDistracted")
+    self.disable_dm_nudges = self.params.get_bool("DisableDMNudges")
 
     self._reset_awareness()
     self._set_timers(active_monitoring=True)
@@ -335,6 +337,23 @@ class DriverMonitoring:
 
   def _update_events(self, driver_engaged, op_engaged, standstill, wrong_gear, car_speed):
     self._reset_events()
+
+    # When "Disable Driver Monitoring Nudges" is enabled in settings, suppress all
+    # awareness decay, distraction events, terminal lockouts, and the resulting
+    # alerts + forceDecel. This implements the "remove safety nudging" behavior
+    # behind the boolean (see DM_NUDGE_REMOVAL_PLAN.md). Face/pose detection in
+    # _update_states still runs so driverMonitoringState.faceDetected etc. remain
+    # available for UI/debug if desired.
+    if self.disable_dm_nudges:
+      self.awareness = 1.
+      self.awareness_active = 1.
+      self.awareness_passive = 1.
+      self.too_distracted = False
+      self.terminal_alert_cnt = 0
+      self.terminal_time = 0
+      self.params.put_bool_nonblocking("DriverTooDistracted", False)
+      return
+
     # Block engaging until ignition cycle after max number or time of distractions
     if self.terminal_alert_cnt >= self.settings._MAX_TERMINAL_ALERTS or \
        self.terminal_time >= self.settings._MAX_TERMINAL_DURATION:
