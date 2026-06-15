@@ -18,7 +18,8 @@ ONROAD_DELAY = 2.5  # seconds
 
 class MiciMainLayout(Scroller):
   def __init__(self):
-    super().__init__(snap_items=True, spacing=0, pad=0, scroll_indicator=False, edge_shadows=False)
+    # snap_momentum=False: keep the snappy one-page-per-swipe feel (no coast across pages)
+    super().__init__(snap_items=True, snap_momentum=False, spacing=0, pad=0, scroll_indicator=False, edge_shadows=False)
 
     self._pm = messaging.PubMaster(['bookmarkButton'])
 

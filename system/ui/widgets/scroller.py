@@ -69,12 +69,13 @@ class ScrollIndicator(Widget):
 
 class _Scroller(Widget):
   """Should use wrapper below to reduce boilerplate"""
-  def __init__(self, items: list[Widget], horizontal: bool = True, snap_items: bool = True, spacing: int = ITEM_SPACING,
-               pad: int = ITEM_SPACING, scroll_indicator: bool = True, edge_shadows: bool = True):
+  def __init__(self, items: list[Widget], horizontal: bool = True, snap_items: bool = True, snap_momentum: bool = True,
+               spacing: int = ITEM_SPACING, pad: int = ITEM_SPACING, scroll_indicator: bool = True, edge_shadows: bool = True):
     super().__init__()
     self._items: list[Widget] = []
     self._horizontal = horizontal
     self._snap_items = snap_items
+    self._snap_momentum = snap_momentum
     self._spacing = spacing
     self._pad = pad
 
@@ -95,7 +96,10 @@ class _Scroller(Widget):
     # when not pressed, snap to closest item to be center
     self._scroll_snap_filter = FirstOrderFilter(0.0, 0.05, 1 / gui_app.target_fps)
 
-    self.scroll_panel = GuiScrollPanel2(self._horizontal, handle_out_of_bounds=not self._snap_items)
+    # momentum mode keeps the slow fling decay (AUTO_SCROLL_TC) + edge bounce so a flick
+    # coasts across several items and decelerates with friction; the snap grabs once it settles.
+    self.scroll_panel = GuiScrollPanel2(self._horizontal,
+                                        handle_out_of_bounds=(not self._snap_items) or self._snap_momentum)
     self._scroll_enabled: bool | Callable[[], bool] = True
 
     self._show_scroll_indicator = scroll_indicator and self._horizontal
@@ -230,8 +234,10 @@ class _Scroller(Widget):
         best_target = target
 
     if best_target is not None:
-      if self.is_pressed:
-        # no snapping until released
+      # In momentum mode let the fling coast freely and only snap once it has settled
+      # (panel STEADY); otherwise snap continuously whenever not actively dragging.
+      hold_snap = self.is_pressed or (self._snap_momentum and self.scroll_panel.state != ScrollState.STEADY)
+      if hold_snap:
         self._scroll_snap_filter.x = 0.0
       else:
         self._scroll_snap_filter.update((best_target - cur_offset) / 10)
