@@ -133,7 +133,9 @@ ParamKeyFlag Params::getKeyFlag(const std::string &key) {
 
 ParamKeyType Params::getKeyType(const std::string &key) {
   auto it = keys.find(key);
-  return it != keys.end() ? it->second.type : BOOL;  // var_* custom toggle
+  // var_* custom params are typed INT: bool toggles still work (get_bool/put_bool bypass the
+  // type and read/write "1"/"0"), and INT lets the same namespace also hold multi-value settings.
+  return it != keys.end() ? it->second.type : INT;
 }
 
 std::optional<std::string> Params::getKeyDefaultValue(const std::string &key) {
