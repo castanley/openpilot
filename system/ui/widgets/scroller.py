@@ -208,37 +208,34 @@ class _Scroller(Widget):
         self._scroll_snap_filter.x = 0.0
       return self.scroll_panel.get_offset()
 
-    # Snap closest item to center
-    center_pos = self._rect.x + self._rect.width / 2 if self._horizontal else self._rect.y + self._rect.height / 2
-    closest_delta_pos = float('inf')
-    scroll_snap_idx: int | None = None
-    for idx, item in enumerate(visible_items):
-      if self._horizontal:
-        delta_pos = (item.rect.x + item.rect.width / 2) - center_pos
-      else:
-        delta_pos = (item.rect.y + item.rect.height / 2) - center_pos
-      if abs(delta_pos) < abs(closest_delta_pos):
-        closest_delta_pos = delta_pos
-        scroll_snap_idx = idx
+    # Snap the item whose centered position (clamped to the scroll bounds) is nearest the
+    # current offset. For interior items this is identical to "center the closest item"
+    # (|target - offset| == |item_center - viewport_center|); but clamping the target lets
+    # the first/last items rest flush against the edge — fully visible and tappable — instead
+    # of being shoved off-screen when a larger neighbour is closer to the viewport centre
+    # (the small-edge-button case, e.g. a circle toggle at the end of the menu).
+    cur_offset = self.scroll_panel.get_offset()
+    min_offset = min(0.0, bounds_size - content_size)
+    center_pos = (self._rect.x if self._horizontal else self._rect.y) + bounds_size / 2
 
-    if scroll_snap_idx is not None:
-      snap_item = visible_items[scroll_snap_idx]
+    best_target: float | None = None
+    best_dist = float('inf')
+    for item in visible_items:
+      item_center = (item.rect.x + item.rect.width / 2) if self._horizontal else (item.rect.y + item.rect.height / 2)
+      # offset that centers this item, clamped so ends rest at the edge instead of overscrolling
+      target = min(0.0, max(min_offset, cur_offset + (center_pos - item_center)))
+      dist = abs(target - cur_offset)
+      if dist < best_dist:
+        best_dist = dist
+        best_target = target
+
+    if best_target is not None:
       if self.is_pressed:
         # no snapping until released
-        self._scroll_snap_filter.x = 0
+        self._scroll_snap_filter.x = 0.0
       else:
-        # TODO: this doesn't handle two small buttons at the edges well
-        if self._horizontal:
-          snap_delta_pos = (center_pos - (snap_item.rect.x + snap_item.rect.width / 2)) / 10
-          snap_delta_pos = min(snap_delta_pos, -self.scroll_panel.get_offset() / 10)
-          snap_delta_pos = max(snap_delta_pos, (self._rect.width - self.scroll_panel.get_offset() - content_size) / 10)
-        else:
-          snap_delta_pos = (center_pos - (snap_item.rect.y + snap_item.rect.height / 2)) / 10
-          snap_delta_pos = min(snap_delta_pos, -self.scroll_panel.get_offset() / 10)
-          snap_delta_pos = max(snap_delta_pos, (self._rect.height - self.scroll_panel.get_offset() - content_size) / 10)
-        self._scroll_snap_filter.update(snap_delta_pos)
-
-      self.scroll_panel.set_offset(self.scroll_panel.get_offset() + self._scroll_snap_filter.x)
+        self._scroll_snap_filter.update((best_target - cur_offset) / 10)
+        self.scroll_panel.set_offset(cur_offset + self._scroll_snap_filter.x)
 
     return self.scroll_panel.get_offset()
 
