@@ -32,7 +32,7 @@ DESCRIPTIONS = {
     "without a turn signal activated while driving over 31 mph (50 km/h)."
   ),
   "AlwaysOnDM": tr_noop("Enable driver monitoring even when sunnypilot is not engaged."),
-  "DisableDMNudges": tr_noop("Disable driver monitoring nudges, alerts, and forced slowdown when driver attention is not detected."),
+  "var_DisableDMNudges": tr_noop("Disable driver monitoring nudges, alerts, and forced slowdown when driver attention is not detected."),
   'RecordFront': tr_noop("Upload data from the driver facing camera and help improve the driver monitoring algorithm."),
   "IsMetric": tr_noop("Display speed in km/h instead of mph."),
   "RecordAudio": tr_noop("Record and store microphone audio while driving. The audio will be included in the dashcam video in comma connect."),
@@ -77,9 +77,9 @@ class TogglesLayout(Widget):
         "monitoring.png",
         False,
       ),
-      "DisableDMNudges": (
+      "var_DisableDMNudges": (
         lambda: tr("Disable Driver Monitoring Nudges"),
-        DESCRIPTIONS["DisableDMNudges"],
+        DESCRIPTIONS["var_DisableDMNudges"],
         "monitoring.png",
         False,
       ),

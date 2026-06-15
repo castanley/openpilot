@@ -25,7 +25,7 @@ class CarSpecificEventsSP:
 
     self.low_speed_alert = False
     # opt-in: hide the "Steer Assist Unavailable Below X" message + chime (read once at car init)
-    self.disable_below_steer_speed_alert = Params().get_bool("DisableBelowSteerSpeedAlert")
+    self.disable_below_steer_speed_alert = Params().get_bool("var_DisableBelowSteerSpeedAlert")
 
   def update(self, CS: structs.CarState, events: Events):
     events_sp = EventsSP()

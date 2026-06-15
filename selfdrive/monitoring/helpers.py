@@ -176,7 +176,7 @@ class DriverMonitoring:
 
     self.params = Params()
     self.too_distracted = self.params.get_bool("DriverTooDistracted")
-    self.disable_dm_nudges = self.params.get_bool("DisableDMNudges")
+    self.disable_dm_nudges = self.params.get_bool("var_DisableDMNudges")
 
     self._reset_awareness()
     self._set_timers(active_monitoring=True)
