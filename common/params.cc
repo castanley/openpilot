@@ -113,20 +113,32 @@ std::vector<std::string> Params::allKeys(ParamKeyFlag flag) const {
   return ret;
 }
 
+// User-defined boolean toggles: any key with the "var_" prefix is auto-accepted as a
+// PERSISTENT|BACKUP BOOL defaulting to "0", so adding a new on/off toggle needs no edit
+// to params_keys.h and no recompile of params_pyx — just use a var_* key name.
+static inline bool is_custom_toggle(const std::string &key) {
+  return key.rfind("var_", 0) == 0;
+}
+static constexpr uint32_t CUSTOM_TOGGLE_FLAGS = PERSISTENT | BACKUP;
+
 bool Params::checkKey(const std::string &key) {
-  return keys.find(key) != keys.end();
+  return keys.find(key) != keys.end() || is_custom_toggle(key);
 }
 
 ParamKeyFlag Params::getKeyFlag(const std::string &key) {
-  return static_cast<ParamKeyFlag>(keys[key].flags);
+  auto it = keys.find(key);
+  if (it != keys.end()) return static_cast<ParamKeyFlag>(it->second.flags);
+  return static_cast<ParamKeyFlag>(CUSTOM_TOGGLE_FLAGS);  // var_* custom toggle
 }
 
 ParamKeyType Params::getKeyType(const std::string &key) {
-  return keys[key].type;
+  auto it = keys.find(key);
+  return it != keys.end() ? it->second.type : BOOL;  // var_* custom toggle
 }
 
 std::optional<std::string> Params::getKeyDefaultValue(const std::string &key) {
-  return keys[key].default_value;
+  auto it = keys.find(key);
+  return it != keys.end() ? it->second.default_value : std::optional<std::string>("0");  // var_* custom toggle
 }
 
 int Params::put(const char* key, const char* value, size_t value_size) {
@@ -215,7 +227,12 @@ void Params::clearAll(ParamKeyFlag key_flag) {
     while ((de = readdir(d))) {
       if (de->d_type != DT_DIR) {
         auto it = keys.find(de->d_name);
-        if (it == keys.end() || (it->second.flags & key_flag)) {
+        // var_* custom toggles are virtual PERSISTENT|BACKUP keys: keep them unless their
+        // flags match (so they survive CLEAR_ON_MANAGER_START etc.), don't treat as orphans.
+        uint32_t flags = it != keys.end() ? it->second.flags
+                                          : (is_custom_toggle(de->d_name) ? CUSTOM_TOGGLE_FLAGS : 0);
+        bool known = it != keys.end() || is_custom_toggle(de->d_name);
+        if (!known || (flags & key_flag)) {
           unlink(getParamPath(de->d_name).c_str());
         }
       }

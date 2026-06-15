@@ -9,6 +9,7 @@ from cereal import log, custom
 from opendbc.car import structs
 
 from opendbc.car.chrysler.values import RAM_DT
+from openpilot.common.params import Params
 from openpilot.selfdrive.selfdrived.events import Events
 from openpilot.sunnypilot.selfdrive.selfdrived.events import EventsSP
 
@@ -23,6 +24,8 @@ class CarSpecificEventsSP:
     self.CP_SP = CP_SP
 
     self.low_speed_alert = False
+    # opt-in: hide the "Steer Assist Unavailable Below X" message + chime (read once at car init)
+    self.disable_below_steer_speed_alert = Params().get_bool("DisableBelowSteerSpeedAlert")
 
   def update(self, CS: structs.CarState, events: Events):
     events_sp = EventsSP()
@@ -41,6 +44,11 @@ class CarSpecificEventsSP:
           self.low_speed_alert = True
       if self.low_speed_alert:
         events.add(EventName.belowSteerSpeed)
+
+      # opt-in suppression of the low-speed steering alert + chime (purely cosmetic;
+      # steering availability below minSteerSpeed is unchanged, enforced in carcontroller)
+      if self.disable_below_steer_speed_alert and events.has(EventName.belowSteerSpeed):
+        events.remove(EventName.belowSteerSpeed)
 
     elif self.CP.brand == 'toyota':
       if self.CP.openpilotLongitudinalControl:

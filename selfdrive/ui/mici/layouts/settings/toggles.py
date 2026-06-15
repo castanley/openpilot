@@ -19,6 +19,8 @@ class TogglesLayoutMici(NavScroller):
     ldw_toggle = BigParamControl("lane departure warnings", "IsLdwEnabled")
     always_on_dm_toggle = BigParamControl("always-on driver monitor", "AlwaysOnDM")
     disable_dm_nudges_toggle = BigParamControl("disable driver monitoring nudges", "DisableDMNudges")
+    nnlc_toggle = BigParamControl("neural network lateral control (NNLC)", "NeuralNetworkLateralControl", toggle_callback=restart_needed_callback)
+    below_steer_speed_toggle = BigParamControl("hide low-speed steering alert", "DisableBelowSteerSpeedAlert", toggle_callback=restart_needed_callback)
     record_front = BigParamControl("record & upload driver camera", "RecordFront", toggle_callback=restart_needed_callback)
     record_mic = BigParamControl("record & upload mic audio", "RecordAudio", toggle_callback=restart_needed_callback)
     enable_openpilot = BigParamControl("enable sunnypilot", "OpenpilotEnabledToggle", toggle_callback=restart_needed_callback)
@@ -30,6 +32,8 @@ class TogglesLayoutMici(NavScroller):
       ldw_toggle,
       always_on_dm_toggle,
       disable_dm_nudges_toggle,
+      nnlc_toggle,
+      below_steer_speed_toggle,
       record_front,
       record_mic,
       enable_openpilot,
@@ -42,6 +46,8 @@ class TogglesLayoutMici(NavScroller):
       ("IsLdwEnabled", ldw_toggle),
       ("AlwaysOnDM", always_on_dm_toggle),
       ("DisableDMNudges", disable_dm_nudges_toggle),
+      ("NeuralNetworkLateralControl", nnlc_toggle),
+      ("DisableBelowSteerSpeedAlert", below_steer_speed_toggle),
       ("RecordFront", record_front),
       ("RecordAudio", record_mic),
       ("OpenpilotEnabledToggle", enable_openpilot),
