@@ -69,7 +69,7 @@ class ScrollIndicator(Widget):
 
 class _Scroller(Widget):
   """Should use wrapper below to reduce boilerplate"""
-  def __init__(self, items: list[Widget], horizontal: bool = True, snap_items: bool = False, spacing: int = ITEM_SPACING,
+  def __init__(self, items: list[Widget], horizontal: bool = True, snap_items: bool = True, spacing: int = ITEM_SPACING,
                pad: int = ITEM_SPACING, scroll_indicator: bool = True, edge_shadows: bool = True):
     super().__init__()
     self._items: list[Widget] = []
@@ -190,6 +190,22 @@ class _Scroller(Widget):
     self.scroll_panel.set_enabled(scroll_enabled and self.enabled and not self._scrolling_to[1])
     self.scroll_panel.update(self._rect, content_size)
     if not self._snap_items:
+      return self.scroll_panel.get_offset()
+
+    # Let programmatic scrolling (scroll_to) and item-move animations own the offset; don't snap over them.
+    if self._scrolling_to[0] is not None or self.moving_items:
+      self._scroll_snap_filter.x = 0.0
+      return self.scroll_panel.get_offset()
+
+    # If all content fits in the viewport the list must not scroll. In snap mode the panel's
+    # out-of-bounds clamp is disabled, so ease the offset back to the start ourselves.
+    bounds_size = self._rect.width if self._horizontal else self._rect.height
+    if content_size <= bounds_size:
+      if not self.is_pressed:
+        self._scroll_snap_filter.update(-self.scroll_panel.get_offset() / 10)
+        self.scroll_panel.set_offset(self.scroll_panel.get_offset() + self._scroll_snap_filter.x)
+      else:
+        self._scroll_snap_filter.x = 0.0
       return self.scroll_panel.get_offset()
 
     # Snap closest item to center

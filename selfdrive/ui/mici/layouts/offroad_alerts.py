@@ -190,8 +190,9 @@ class MiciOffroadAlerts(Scroller):
   """Offroad alerts layout with vertical scrolling."""
 
   def __init__(self):
-    # Create vertical scroller
-    super().__init__(horizontal=False, spacing=12, pad=0)
+    # Create vertical scroller. Keep free-scroll (no snap): this is a variable-height
+    # read-list of alerts, not a navigational menu, so center-snapping would be jarring.
+    super().__init__(horizontal=False, snap_items=False, spacing=12, pad=0)
     self.params = Params()
     self.sorted_alerts: list[AlertData] = []
     self.alert_items: list[AlertItem] = []
