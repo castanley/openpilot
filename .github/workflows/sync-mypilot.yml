@@ -1,11 +1,13 @@
-# Keeps the MyPilot fork branches current with upstream SunnyPilot.
+# Publishes the MyPilot device channels to castanley/openpilot (the installer-named delivery repo).
 #
-# Each run rebuilds every mypilot-* branch as: latest upstream release branch + the MyPilot agent
-# overlay (sunnypilot/mypilot, sourced canonically from mypilot-mici) + the registered mypilotd
-# process. It pushes only when the result actually differs (no needless churn / on-device rebuilds).
+# This is a THIN workflow: it just clones the public monorepo (the single source of truth) and runs
+# mypilot-mici/publish.sh, which rebuilds every channel = <upstream base> + the freshly assembled
+# MyPilot overlay and force-pushes only the branches that actually changed.
 #
-# This file lives on the fork's DEFAULT branch (master) so the schedule fires. Canonical copy is
-# tracked in the MyPilot repo at deploy/fork/sync-mypilot.yml.
+# It lives on the delivery repo's DEFAULT branch (master) so the schedule fires. The canonical copy
+# is tracked in the monorepo at deploy/fork/sync-mypilot.yml; redeploy it to .github/workflows/ on
+# the openpilot repo's master when it changes. No secrets needed: the monorepo is public, and the
+# pushes use this repo's own GITHUB_TOKEN.
 name: sync-mypilot
 
 on:
@@ -21,49 +23,21 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  sync:
+  publish:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - mypilot: mypilot-mici
-            upstream: release-mici
-          - mypilot: mypilot-mici-staging
-            upstream: release-mici-staging
     steps:
-      - name: Checkout fork
+      - name: Checkout delivery repo (openpilot)
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Configure git + remotes
-        run: |
-          git config user.name "mypilot-sync[bot]"
-          git config user.email "mypilot-sync@users.noreply.github.com"
-          git remote add upstream https://github.com/sunnypilot/sunnypilot.git
+      - name: Fetch existing mypilot-* branches (so unchanged ones aren't re-pushed)
+        run: git fetch --depth 1 origin '+refs/heads/mypilot-*:refs/remotes/origin/mypilot-*' || true
 
-      - name: Fetch upstream + fork branches
-        run: |
-          git fetch --depth 1 upstream "${{ matrix.upstream }}"
-          git fetch --depth 1 origin mypilot-mici "${{ matrix.mypilot }}" || git fetch --depth 1 origin mypilot-mici
+      - name: Clone the monorepo (source of truth) outside the workspace
+        run: git clone --depth 1 https://github.com/castanley/mypilot.git "${RUNNER_TEMP}/mypilot"
 
-      - name: Rebuild branch = upstream + MyPilot agent
+      - name: Build + publish every channel
         env:
-          MYPILOT: ${{ matrix.mypilot }}
-          UPSTREAM: ${{ matrix.upstream }}
-        run: |
-          set -euo pipefail
-          git checkout -B sync-tmp "upstream/${UPSTREAM}"
-          # Bring the agent overlay from the canonical branch (single source of truth).
-          git checkout origin/mypilot-mici -- sunnypilot/mypilot
-          python3 sunnypilot/mypilot/install_process.py
-          git add -A
-          git commit -m "sync: ${MYPILOT} = ${UPSTREAM}@$(git rev-parse --short upstream/${UPSTREAM}) + MyPilot agent" || {
-            echo "Nothing to commit"; exit 0; }
-          if git rev-parse --verify "origin/${MYPILOT}" >/dev/null 2>&1 && git diff --quiet sync-tmp "origin/${MYPILOT}"; then
-            echo "No change for ${MYPILOT}; skipping push."
-          else
-            git push --force origin "sync-tmp:${MYPILOT}"
-            echo "Pushed refreshed ${MYPILOT}."
-          fi
+          MYPILOT_MONOREPO: ${{ runner.temp }}/mypilot
+        run: bash "${RUNNER_TEMP}/mypilot/mypilot-mici/publish.sh"
