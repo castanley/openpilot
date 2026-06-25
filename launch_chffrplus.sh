@@ -70,6 +70,9 @@ function launch {
   ln -sfn $(pwd) /data/pythonpath
   export PYTHONPATH="$PWD"
 
+  # [MyPilot DIAG] bring up SSH before AGNOS/manager so logs are reachable at any stage
+  bash "$DIR/sunnypilot/mypilot/enable_ssh.sh" > /tmp/mypilot_ssh.log 2>&1 || true
+
   # hardware specific init
   if [ -f /AGNOS ]; then
     agnos_init
